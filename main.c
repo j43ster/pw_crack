@@ -19,11 +19,12 @@ int main(int argc, char** argv) {
    sha1nfo current_hash;
    uint8_t *current_hash_ptr;
    char    current_pw[100];
-   uint8_t current_idxs[100];
+   uint8_t current_idxs[100]; // index into charset
    uint8_t current_len = 1;
 
    for (current_len = start_len; current_len <= end_len; current_len++) {
 
+      // initialize
       for (i = 0; i < 100; i++) {
          current_pw[i] = 0;
          current_idxs[i] = 0;
