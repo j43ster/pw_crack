@@ -1,5 +1,6 @@
 #define BLOCK_LENGTH 64
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 //#define SHA1TEST 1

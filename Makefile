@@ -1,9 +1,19 @@
+CC= gcc
+CFLAGS =
+NVCC= nvcc
+NVCCFLAGS= -O3 -arch=sm_20
+
 default: all
 
-all: pw_crack
+BINS= cpu_pw_crack gpu_pw_crack
 
-pw_crack:
-	gcc main.c sha1.c
+all: $(BINS)
+
+cpu_pw_crack: main.c sha1.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+gpu_pw_crack: main.cu sha1.cu
+	$(NVCC) $(NVCFLAGS) $^ -o $@
 
 clean:
-	rm -rf a.out
+	rm -rf *.o *.gch $(BINS)
