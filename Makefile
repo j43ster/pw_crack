@@ -1,7 +1,8 @@
 CC= gcc
+CPP=g++
 CFLAGS =
 NVCC= nvcc
-NVCCFLAGS= -O3 -arch=sm_20
+NVCCFLAGS= -c -O3 -arch=sm_20
 
 default: all
 

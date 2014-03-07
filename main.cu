@@ -1,4 +1,4 @@
-#include "main.h"
+#include "main_gpu.h"
 
 const char *charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVYXYZ0123456789";
 

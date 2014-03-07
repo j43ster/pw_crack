@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
          current_hash_ptr = sha1_result(&current_hash);
 
          // check if equal to hash we are cracking
-         if (strncmp(hash_ptr, current_hash_ptr, BLOCK_LENGTH) == 0) {
+         if (strncmp((char *)hash_ptr, (char *)current_hash_ptr, BLOCK_LENGTH) == 0) {
             printf("found a password with a matching hash!\n");
             printHash(current_hash_ptr);
             printf("password is: %s\n", current_pw);
