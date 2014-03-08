@@ -5,6 +5,10 @@
 
 #include "sha1.h"
 
+#define BLOCKS 512
+#define MAX_BLOCKS 64000
+#define HANDLE_ERROR( err ) (handle_error( err, __FILE__, __LINE__ ))
+
 __device__ const uint8_t sha1InitState[] = {
   0x01,0x23,0x45,0x67, // H0
   0x89,0xab,0xcd,0xef, // H1
@@ -12,6 +16,10 @@ __device__ const uint8_t sha1InitState[] = {
   0x76,0x54,0x32,0x10, // H3
   0xf0,0xe1,0xd2,0xc3  // H4
 };
+
+// ----------------------------------------------------------------------------
+//                    GPU FUNCTIONS
+// ----------------------------------------------------------------------------
 
 __device__ void d_sha1_init(sha1nfo *s) {
   memcpy(s->state.b,sha1InitState,HASH_LENGTH);
@@ -115,6 +123,49 @@ __device__ uint8_t* d_sha1_result(sha1nfo *s) {
   // Return pointer to hash (20 characters)
   return s->state.b;
 }
+
+__global__ void crack_password (uint8_t *hash, char *password, int max_len) {
+
+}
+
+// ----------------------------------------------------------------------------
+//                    CPU FUNCTIONS
+// ----------------------------------------------------------------------------
+
+void handle_error(cudaError_t err, const char *file, int line ) {
+  if (err != cudaSuccess) {
+    fprintf(stderr, "%s in %s at line %d\n", cudaGetErrorString( err ), file, line);
+          exit(EXIT_FAILURE);
+  }
+}
+
+extern "C" void run_kernel (uint8_t *hash, char *password, int max_len) {
+  uint8_t *d_hash;
+  char *d_password;
+  int block_size, grid_size;
+
+  // Setup Device Variables
+  HANDLE_ERROR (cudaMalloc (&d_hash, BLOCK_LENGTH));
+  HANDLE_ERROR (cudaMemcpy (d_hash, hash, BLOCK_LENGTH, cudaMemcpyHostToDevice));
+
+  HANDLE_ERROR (cudaMalloc (&d_password, max_len));
+  
+  // Compute correct block and grid sizes
+  block_size = BLOCKS;
+  grid_size = MAX_BLOCKS;
+
+  // Execute Kernel
+  crack_password<<<block_size, grid_size>>> (d_hash, d_password, max_len);
+
+  // Copy cracked password back
+  HANDLE_ERROR (cudaMemcpy (password, d_password, max_len, cudaMemcpyDeviceToHost));
+ 
+  // Free Device memory
+  HANDLE_ERROR (cudaFree (d_hash));
+  HANDLE_ERROR (cudaFree (d_password));
+}
+
+
 
 void sha1_init(sha1nfo *s) {
   memcpy(s->state.b,sha1InitState,HASH_LENGTH);
