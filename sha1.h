@@ -1,3 +1,6 @@
+#ifndef SHA1_H
+#define SHA1_H
+
 #define BLOCK_LENGTH 64
 #include <stdint.h>
 #include <stdio.h>
@@ -9,6 +12,7 @@
 
 #define HASH_LENGTH 20
 #define BLOCK_LENGTH 64
+#define MAX_LEN 3
 
 union _buffer {
 	uint8_t b[BLOCK_LENGTH];
@@ -57,3 +61,5 @@ void printHash(uint8_t* hash);
 #define SHA1_K20 0x6ed9eba1
 #define SHA1_K40 0x8f1bbcdc
 #define SHA1_K60 0xca62c1d6
+
+#endif
