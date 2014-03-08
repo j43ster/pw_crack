@@ -13,6 +13,10 @@ __device__ const uint8_t sha1InitState[] = {
   0xf0,0xe1,0xd2,0xc3  // H4
 };
 
+// ----------------------------------------------------------------------------
+//                    GPU FUNCTIONS
+// ----------------------------------------------------------------------------
+
 __device__ void d_sha1_init(sha1nfo *s) {
   memcpy(s->state.b,sha1InitState,HASH_LENGTH);
   s->byteCount = 0;
@@ -115,6 +119,16 @@ __device__ uint8_t* d_sha1_result(sha1nfo *s) {
   // Return pointer to hash (20 characters)
   return s->state.b;
 }
+
+// ----------------------------------------------------------------------------
+//                    CPU FUNCTIONS
+// ----------------------------------------------------------------------------
+
+extern "C" void run_kernel (char *hash, char *password, int max_len) {
+
+}
+
+
 
 void sha1_init(sha1nfo *s) {
   memcpy(s->state.b,sha1InitState,HASH_LENGTH);

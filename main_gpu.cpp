@@ -1,7 +1,5 @@
 #include "main_gpu.h"
 
-const char *charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVYXYZ0123456789";
-
 int main(int argc, char** argv) {
 
    sha1nfo hash;
