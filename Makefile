@@ -11,7 +11,7 @@ BINS= cpu_pw_crack gpu_pw_crack
 all: $(BINS)
 
 cpu_pw_crack: main.c sha1.c
-	$(CC) $(CFLAGS) $^ -o $@
+	mpic++ $(CFLAGS) $^ -o $@
 
 gpu_pw_crack: main.cu sha1.cu
 	$(NVCC) $(NVCFLAGS) $^ -o $@
