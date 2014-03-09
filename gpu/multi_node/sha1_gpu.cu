@@ -10,8 +10,6 @@
 
 #define HANDLE_ERROR( err ) (handle_error( err, __FILE__, __LINE__ ))
 
-const char *charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVYXYZ0123456789";
-
 __device__ const uint8_t sha1InitState[] = {
   0x01,0x23,0x45,0x67, // H0
   0x89,0xab,0xcd,0xef, // H1
@@ -290,7 +288,7 @@ double time_in_seconds (struct timeval tv) {
 /*
  * prepend must be an array of size NUM_PREPEND found in sha1_gpu.h
  */
-void call_kernel (uint8_t *prepend) {
+extern "C" void call_kernel (uint8_t *prepend, char *charset) {
   char *d_charset;
   uint8_t *d_prepend;
   int i, num_chars = strlen (charset), len, section;
@@ -348,13 +346,3 @@ void call_kernel (uint8_t *prepend) {
   HANDLE_ERROR (cudaFree (d_prepend));
 }
 
-int main (int argc, char *argv[]) {
-  int i;
-
-  uint8_t prepend[NUM_PREPEND];
-
-  for (i = 0; i < strlen (charset); i++) {
-    prepend[0] = i;
-    call_kernel (prepend);
-  }
-}
