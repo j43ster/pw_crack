@@ -186,7 +186,7 @@ __device__ void compute_hash (char *password, int len, uint8_t *current_hash_ptr
 }
 
 __device__ void perform_permutations (char *pw, int len, uint8_t *hash,
-                                      char *charset, int num_chars, int section) {
+                                      char *charset, int num_chars, int num_static) {
    char    current_pw[MAX_LEN + 1];
    uint8_t current_idxs[MAX_LEN + 1]; // index into charset
    uint8_t current_hash_ptr[HASH_LENGTH];
@@ -210,8 +210,7 @@ __device__ void perform_permutations (char *pw, int len, uint8_t *hash,
         printf ("Found Password: %s\n", current_pw);
       }
    } while (next_password (charset, num_chars, current_pw, current_idxs, 
-                          (len - NUM_STATIC - NUM_PREPEND - 
-                          (section != NO_SECTION) ? 1 : 0)));
+                          (len - num_static)));
 }
 
 __device__ void crack_password_helper (int section, uint8_t *hash, char *charset, int num_chars, 
@@ -249,11 +248,11 @@ __device__ void crack_password_helper (int section, uint8_t *hash, char *charset
        
      for (i = 0; i <= end; i++) {
        current_pw[len - 1 - NUM_STATIC - NUM_PREPEND] = charset[i + section*chars_per_section];
-       perform_permutations(current_pw, len, hash, charset, num_chars, section);
+       perform_permutations(current_pw, len, hash, charset, num_chars, NUM_STATIC + NUM_PREPEND + 1);
      }
    }
    else {
-     perform_permutations(current_pw, len, hash, charset, num_chars, section);
+     perform_permutations(current_pw, len, hash, charset, num_chars, NUM_STATIC + NUM_PREPEND);
    }
 }
 
@@ -263,7 +262,7 @@ __global__ void crack_password (int section, char *charset, int max_len, int num
    static_chars[1] = blockIdx.y;
    static_chars[2] = threadIdx.x;
 
-   char *password = "16zbf0";
+   char *password = "16abf0";
    int pw_len = 6;
    uint8_t hash[HASH_LENGTH];
    
@@ -284,6 +283,10 @@ void handle_error(cudaError_t err, const char *file, int line ) {
   }
 }
 
+double time_in_seconds (struct timeval tv) {
+  return tv.tv_sec + tv.tv_usec * 1e-06;
+}
+
 /*
  * prepend must be an array of size NUM_PREPEND found in sha1_gpu.h
  */
@@ -291,6 +294,8 @@ void call_kernel (uint8_t *prepend) {
   char *d_charset;
   uint8_t *d_prepend;
   int num_chars = strlen (charset), len, section;
+  double start_time, end_time;
+  struct timeval start_t, end_t;
   dim3 grid (num_chars, num_chars);
 
   // Setup Device Variables
@@ -302,17 +307,34 @@ void call_kernel (uint8_t *prepend) {
   
   //for (len = NUM_PREPEND + NUM_STATIC + 1; len <= MAX_LEN; len++) {
   for (len = MAX_LEN; len <= MAX_LEN; len++) {
+    printf ("Considering length: %d\n", len);
     if ((len - NUM_PREPEND) >= MAX_WITH_SECTION) {
       for (section = 0; section < NUM_SECTIONS; section++) {
+        printf ("\tSearching for passwords in section %d\n", section);
+        gettimeofday(&start_t, NULL); 
+        start_time = time_in_seconds (start_t);
+        
         crack_password<<<grid, num_chars>>> (section, d_charset, len, num_chars, d_prepend);
         HANDLE_ERROR (cudaDeviceSynchronize());
+        
+        gettimeofday(&end_t, NULL); 
+        end_time = time_in_seconds (end_t);
+        printf ("\t\t Completed in %f seconds.\n", end_time - start_time);
       }
+      printf ("\n");
     }
     else {
+      gettimeofday(&start_t, NULL); 
+      start_time = time_in_seconds (start_t);
+      
       // Execute Kernel
       crack_password<<<grid, num_chars>>> (NO_SECTION, d_charset, len, num_chars, d_prepend);
+      HANDLE_ERROR (cudaDeviceSynchronize());
+        
+      gettimeofday(&end_t, NULL); 
+      end_time = time_in_seconds (end_t);
+      printf ("\t\t Completed in %f seconds.\n", end_time - start_time);
     }
-    HANDLE_ERROR (cudaDeviceSynchronize());
   }
  
   // Free Device memory
@@ -326,6 +348,7 @@ int main (int argc, char *argv[]) {
   uint8_t prepend[NUM_PREPEND];
 
   for (i = 0; i < strlen (charset); i++) {
+    printf ("Executing with static prepend char: %c\n", charset[i]);
     prepend[0] = i;
     call_kernel (prepend);
   }
