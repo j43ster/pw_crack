@@ -293,10 +293,16 @@ double time_in_seconds (struct timeval tv) {
 void call_kernel (uint8_t *prepend) {
   char *d_charset;
   uint8_t *d_prepend;
-  int num_chars = strlen (charset), len, section;
+  int i, num_chars = strlen (charset), len, section;
   double start_time, end_time;
   struct timeval start_t, end_t;
   dim3 grid (num_chars, num_chars);
+
+  printf ("Executing with static prepend: ");
+  for (i = 0; i < NUM_PREPEND; i++) {
+    printf("%c", charset[prepend[i]]);
+  }
+  printf ("\n");
 
   // Setup Device Variables
   HANDLE_ERROR (cudaMalloc (&d_charset, num_chars));
@@ -348,7 +354,6 @@ int main (int argc, char *argv[]) {
   uint8_t prepend[NUM_PREPEND];
 
   for (i = 0; i < strlen (charset); i++) {
-    printf ("Executing with static prepend char: %c\n", charset[i]);
     prepend[0] = i;
     call_kernel (prepend);
   }
