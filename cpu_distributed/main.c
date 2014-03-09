@@ -29,7 +29,7 @@ void run_master(int me, int nprocs, int argc, char** argv) {
 
    sha1nfo hash;
    uint8_t *hash_ptr;
-   const char *pw = "64f";
+   const char *pw = "h678a";
    int i;
    int num_workers = nprocs - 1;
 
