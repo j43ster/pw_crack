@@ -137,14 +137,14 @@ __device__ void d_print_hash(uint8_t* hash) {
   printf("\n");
 }
 
-__device__ int next_password(char *charset, int num_chars, char* current_pw, uint8_t* current_idxs, uint8_t current_len) {
+__device__ int next_password(char *charset, int num_chars, char* current_pw, uint8_t* current_idxs, int current_len) {
 
    int chk_len = current_len - 1;
    int done = 0;
       
    while (!done) {
 
-      if (chk_len == -1) {
+      if (chk_len < 0) {
          return 0;
       }
 
@@ -193,12 +193,12 @@ __device__ void compute_hash (char *password, int len, uint8_t *current_hash_ptr
    memcpy(current_hash_ptr, hash, HASH_LENGTH);
 }
 
-__device__ void crack_password_helper (uint8_t *hash, char *charset, int num_chars, 
-                                       int len, char *d_password, int last_char, int second_last_char) {
+__device__ void crack_password_helper (char *d_password, uint8_t *hash, char *charset, int num_chars, 
+                                       int len, int *static_chars, int num_static) {
    char    current_pw[100];
    uint8_t current_idxs[100]; // index into charset
    uint8_t current_hash_ptr[HASH_LENGTH];
-   int i;
+   int i,j;
 
    // initialize
    for (i = 0; i < 100; i++) {
@@ -210,30 +210,34 @@ __device__ void crack_password_helper (uint8_t *hash, char *charset, int num_cha
       current_pw[0] = charset[0];
    }
 
-   current_pw[len - 2] = charset[second_last_char];
-   current_pw[len - 1] = charset[last_char];
+   // Set static chars at the end of the string
+   for (i = 0, j=num_static-1; i <= num_static && i < len; i++, j--) {
+     current_pw[len - 1 - i] = charset[static_chars[j]];
+   }
 
    do { // loops over password space for given password length
       compute_hash (current_pw, len, current_hash_ptr);
 
       // check if equal to hash we are cracking
       if (check_eq((char *)hash, (char *)current_hash_ptr) == 0) {
-         copy_password (d_password, current_pw, len);
+        memcpy (d_password, current_pw, MAX_LEN);
       }
-   } while (next_password (charset, num_chars, current_pw, current_idxs, len - 2));
+   } while (next_password (charset, num_chars, current_pw, current_idxs, len - num_static));
 }
 
 __global__ void crack_password (char *d_password, char *charset, int max_len, int num_chars) {
-   int last_char = blockIdx.x;
-   int second_last_char = threadIdx.x;
-    
-   char *password = "16ba";
-   int pw_len = 4;
+   int static_chars[NUM_STATIC];
+   static_chars[0] = blockIdx.x;
+   static_chars[1] = blockIdx.y;
+   static_chars[2] = threadIdx.x;
+
+   char *password = "16baa";
+   int pw_len = 5;
    uint8_t hash[HASH_LENGTH];
 
    compute_hash (password, pw_len, hash);
    
-   crack_password_helper (hash, charset, num_chars, max_len, d_password, last_char, second_last_char);
+   crack_password_helper (d_password, hash, charset, num_chars, max_len, static_chars, NUM_STATIC);
 }
 
 // ----------------------------------------------------------------------------
@@ -248,37 +252,28 @@ void handle_error(cudaError_t err, const char *file, int line ) {
 }
 
 int main (int argc, char *argv[]) {
-  uint8_t *d_hash;
-  char *password, *d_password, *d_charset;
+  char *d_charset, *password, *d_password;
   int num_chars = strlen (charset), len;
-  
+  dim3 grid (num_chars, num_chars);
+
   password = (char *) malloc (MAX_LEN + 1);
   memset (password, '\0', MAX_LEN + 1);
+
   // Setup Device Variables
-  HANDLE_ERROR (cudaMalloc (&d_hash, HASH_LENGTH));
   HANDLE_ERROR (cudaMalloc (&d_password, MAX_LEN + 1));
+  HANDLE_ERROR (cudaMemset (d_password, '\0', MAX_LEN + 1));
   
   HANDLE_ERROR (cudaMalloc (&d_charset, num_chars));
   HANDLE_ERROR (cudaMemcpy (d_charset, charset, num_chars, cudaMemcpyHostToDevice));
-
-  for (len = 2; len <= MAX_LEN; len++) {
-    if (len < 4) {
-      // Execute Kernel
-      crack_password<<<num_chars, num_chars>>> (d_password, d_charset, len, num_chars);
-    }
-    else {
-      
-      // Execute Kernel
-      crack_password<<<num_chars, num_chars>>> (d_password, d_charset, len, num_chars);
-    }
+  
+  for (len = 1; len <= MAX_LEN; len++) {
+    // Execute Kernel
+    crack_password<<<grid, num_chars>>> (d_password, d_charset, len, num_chars);
   }
-
-  // Copy cracked password back
-  HANDLE_ERROR (cudaMemcpy (password, d_password, MAX_LEN, cudaMemcpyDeviceToHost));
  
-  // Free Device memory
-  HANDLE_ERROR (cudaFree (d_hash));
-  HANDLE_ERROR (cudaFree (d_password));
-
+  HANDLE_ERROR (cudaMemcpy (password, d_password, MAX_LEN, cudaMemcpyDeviceToHost));
   printf ("Found Password: %s\n", password);
+  
+  // Free Device memory
+  HANDLE_ERROR (cudaFree (d_charset));
 }

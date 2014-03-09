@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define HASH_LENGTH 20
 #define BLOCK_LENGTH 64
-#define MAX_LEN 4 
+#define MAX_LEN 5 
+#define NUM_STATIC 3
 
 union _buffer {
 	uint8_t b[BLOCK_LENGTH];
