@@ -8,7 +8,7 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define MASTER 0
-#define MAX_LENGTH 4
+#define MAX_LENGTH 6
 
 
 void run_master(int me, int nprocs, int argc, char** argv);
