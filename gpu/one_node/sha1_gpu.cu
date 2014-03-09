@@ -215,26 +215,42 @@ __device__ void perform_permutations (char *pw, int len, uint8_t *hash,
 
 __device__ void crack_password_helper (int section, uint8_t *hash, char *charset, int num_chars, 
                                        int len, uint8_t *static_chars, int num_static) {
-   char    current_pw[100];
+   char    current_pw[MAX_LEN + 1];
    int i,j;
-
-   for (i = 0; i < len; i++) {
-     current_pw[i] = charset[0];
-   }
-   // Set static chars at the end of the string
-   for (i = 0, j=num_static-1; i <= num_static && i < len; i++, j--) {
-     current_pw[len - 1 - i] = charset[static_chars[j]];
-   }
-
-   /*if (len > num_static && section > 0) {
-     num_static++;
-     for (i = 0; i < len; i++) {
-       current_pw[i] = current_pw [i+1];
+   
+   // initialize
+   for (i = 0; i < MAX_LEN + 1; i++) {
+     if (i < len) {
+       current_pw[i] = charset[0];
+     }
+     else {
+      current_pw[i] = 0;
      }
    }
-   else {*/
+
+   // Set static chars at the end of the string
+   for (i = 0, j = num_static-1; i <= num_static && i < len; i++, j--) {
+     current_pw[len - 1 - i] = charset[static_chars[j]];
+   }
+   
+   if (len > num_static && section > NO_SECTION) {
+     int end, chars_per_section = (num_chars / NUM_SECTIONS) + 1;
+     if (section == (NUM_SECTIONS - 1)) {
+       end = (num_chars - (section * chars_per_section));
+     }
+     else {
+       end = chars_per_section;
+     }
+
+       
+     for (i = 0; i <= end; i++) {
+       current_pw[len - 1 - num_static] = charset[i + section*chars_per_section];
+       perform_permutations(current_pw, len, hash, charset, num_chars, num_static + 1);
+     }
+   }
+   else {
      perform_permutations(current_pw, len, hash, charset, num_chars, num_static);
-  // }
+   }
 }
 
 __global__ void crack_password (int section, char *charset, int max_len, int num_chars) {
@@ -243,8 +259,8 @@ __global__ void crack_password (int section, char *charset, int max_len, int num
    static_chars[1] = blockIdx.y;
    static_chars[2] = threadIdx.x;
 
-   char *password = "16ab";
-   int pw_len = 4;
+   char *password = "16zbf";
+   int pw_len = 5;
    uint8_t hash[HASH_LENGTH];
 
    compute_hash (password, pw_len, hash);
@@ -274,10 +290,8 @@ int main (int argc, char *argv[]) {
   HANDLE_ERROR (cudaMemcpy (d_charset, charset, num_chars, cudaMemcpyHostToDevice));
   
   for (len = 1; len <= MAX_LEN; len++) {
-    printf ("Executing Length %d (%d)\n", len, MAX_LEN);
     if (len == MAX_WITH_SECTION) {
-      printf ("bad\n");
-      for (section = 0; section < 2; section++) {
+      for (section = 0; section < NUM_SECTIONS; section++) {
         crack_password<<<grid, num_chars>>> (section, d_charset, len, num_chars);
         HANDLE_ERROR (cudaDeviceSynchronize());
       }
