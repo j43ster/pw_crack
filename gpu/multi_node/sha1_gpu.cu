@@ -260,7 +260,7 @@ __global__ void crack_password (int section, char *charset, int max_len, int num
    static_chars[1] = blockIdx.y;
    static_chars[2] = threadIdx.x;
 
-   char *password = "16abf0";
+   char *password = "z16abf0";
    int pw_len = 6;
    uint8_t hash[HASH_LENGTH];
    

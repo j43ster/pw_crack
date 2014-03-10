@@ -7,9 +7,9 @@
 #define HASH_LENGTH 20
 #define BLOCK_LENGTH 64
 
-#define MAX_LEN 6
+#define MAX_LEN 7
 #define NUM_STATIC 3
-#define NUM_PREPEND 1 
+#define NUM_PREPEND 2
 
 #define MAX_WITH_SECTION 5
 #define NUM_SECTIONS 3 
